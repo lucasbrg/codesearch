@@ -72,6 +72,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 )
 
 const (
@@ -426,13 +427,52 @@ func mmap(file string) mmapData {
 	return mmapFile(f)
 }
 
+func findSearchIndexInTree(dir string) (string, bool) {
+	{
+		path := filepath.Clean(dir + "/.csearchindex")
+		_, err := os.Stat(path)
+
+		if err == nil {
+			return path, true
+		}
+	}
+
+	if strings.Count(dir, string(filepath.Separator)) == 1 {
+		return "", false
+	}
+
+	{
+		parentDir := filepath.Clean(dir + "/..")
+		_, err := os.Stat(parentDir)
+		if err == nil {
+			return findSearchIndexInTree(parentDir)
+		}
+	}
+
+	return "", false
+}
+
 // File returns the name of the index file to use.
 // It is either $CSEARCHINDEX or $HOME/.csearchindex.
 func File() string {
+
+	wd, err := os.Getwd()
+	if err == nil {
+		path, found := findSearchIndexInTree(wd)
+		if found {
+			return path
+		}
+
+      path = filepath.Clean(wd + "/.csearchindex")
+      return path
+	}
+
 	f := os.Getenv("CSEARCHINDEX")
 	if f != "" {
 		return f
 	}
+
+
 	var home string
 	home = os.Getenv("HOME")
 	if runtime.GOOS == "windows" && home == "" {
