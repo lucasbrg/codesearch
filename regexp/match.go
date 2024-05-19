@@ -354,10 +354,11 @@ type Grep struct {
 	Stdout io.Writer // output target
 	Stderr io.Writer // error target
 
-	L bool // L flag - print file names only
-	C bool // C flag - print count of matches
-	N bool // N flag - print line numbers
-	H bool // H flag - do not print file names
+	L      bool // L flag - print file names only
+	C      bool // C flag - print count of matches
+	N      bool // N flag - print line numbers
+	Column bool // N flag - print column
+	H      bool // H flag - do not print file names
 
 	Match bool
 
@@ -368,6 +369,7 @@ func (g *Grep) AddFlags() {
 	flag.BoolVar(&g.L, "l", false, "list matching files only")
 	flag.BoolVar(&g.C, "c", false, "print match counts only")
 	flag.BoolVar(&g.N, "n", false, "show line numbers")
+	flag.BoolVar(&g.Column, "column", false, "show column numbers")
 	flag.BoolVar(&g.H, "h", false, "omit file names")
 }
 
@@ -453,7 +455,11 @@ func (g *Grep) Reader(r io.Reader, name string) {
 			case g.C:
 				count++
 			case g.N:
-				fmt.Fprintf(g.Stdout, "%s%d:%s%s", prefix, lineno, line, nl)
+				if g.Column {
+					fmt.Fprintf(g.Stdout, "%s%d:%d:%s%s", prefix, lineno, 0, line, nl)
+				} else {
+					fmt.Fprintf(g.Stdout, "%s%d:%s%s", prefix, lineno, line, nl)
+				}
 			default:
 				fmt.Fprintf(g.Stdout, "%s%s%s", prefix, line, nl)
 			}
