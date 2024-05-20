@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"sort"
+	"strings"
 
 	"github.com/google/codesearch/index"
 )
@@ -58,6 +59,7 @@ var (
 	resetFlag   = flag.Bool("reset", false, "discard existing index")
 	verboseFlag = flag.Bool("verbose", false, "print extra information")
 	cpuProfile  = flag.String("cpuprofile", "", "write cpu profile to this file")
+	fileFormats = flag.String("fformats", "", "file formats to index")
 )
 
 func main() {
@@ -121,6 +123,20 @@ func main() {
 		file += "~"
 	}
 
+	var fformats []string
+	if *fileFormats != "" {
+		fformats = strings.Split(*fileFormats, ",")
+	}
+	fformatLen := len(fformats)
+
+	if fformatLen > 0 {
+		fmt.Printf("[BRG] Indexing File Formats: ")
+		for _, suffix := range fformats {
+			fmt.Printf("%s ", suffix)
+		}
+		fmt.Printf("\n")
+	}
+
 	ix := index.Create(file)
 	ix.Verbose = *verboseFlag
 	ix.AddPaths(args)
@@ -134,6 +150,19 @@ func main() {
 						return filepath.SkipDir
 					}
 					return nil
+				}
+
+				if fformatLen > 0 {
+					hasFormat := false
+					for _, suffix := range fformats {
+						if strings.HasSuffix(elem, suffix) {
+							hasFormat = true
+							break
+						}
+					}
+					if !hasFormat {
+						return nil
+					}
 				}
 			}
 			if err != nil {
